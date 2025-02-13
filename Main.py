@@ -1,53 +1,93 @@
-import matplotlib
-import matplotlib.image as img
 import matplotlib.pyplot as plt
 
-# Esolhendo a imagem
-imagem = r'.\data_set\Cat\7.jpg'
 
-imagem_original = img.imread(imagem)
+imagem_original = r'./data_set/Cat/7.ppm'
 
-def coverte_img_cinza(imagem):
-    
-    # Extraindo canais RGB    
-    r = imagem[:, :, 0]
-    g = imagem[:, :, 1]
-    b = imagem[:, :, 2]
+def read_ppm(filename):
+    # Abre um arquivo PPM (formato P6)
+    with open(filename, 'rb') as f:
+        header = f.readline().decode().strip() # Lê o cabeçalho (primeira linha deve ser 'P6')
+        if header != "P6":
+            raise ValueError("Arquivo não está no formato P6 PPM")
+        
+        line = f.readline().decode().strip()
+        while line.startswith('#'):
+            line = f.readline().decode().strip()
+        parts = line.split()
+        width, height = int(parts[0]), int(parts[1])
+        
+        max_val = int(f.readline().decode().strip())
+        if max_val > 255:
+            raise ValueError("Este exemplo suporta apenas max_val <= 255")
+        
+        # Lê os dados dos pixels
+        pixel_data = f.read()
+        image = []
+        index = 0
+        
+        for y in range(height):
+            row = []
+            for x in range(width):
+        
+                # Cada pixel é representado por 3 bytes: R, G, B
+                r = pixel_data[index]
+                g = pixel_data[index+1]
+                b = pixel_data[index+2]
+                row.append((r, g, b))
+                index += 3
+        
+            image.append(row)
+        
+        return image, width, height
 
-    # imagem_cinza = (r + g + b) / 3 Média Aritmética (igualdade de pesos)
-    # formula para imagem cinza
-    imagem_cinza = (r * 0.299 + g * 0.587 + b * 0.114) / 3 # Média Ponderada (mais adequada à percepção humana)
-    
-    return imagem_cinza
+def image_to_gray(image, width, height):
+    gray = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            r, g, b = image[y][x]
+            # Fórmula ponderada:
+            valor = int(0.299 * r + 0.587 * g + 0.114 * b)
+            row.append(valor)
+        gray.append(row)
+    return gray
 
 
-imagem_cinza = coverte_img_cinza(imagem_original)
+def binarize_image(gray, width, height, threshold=127): # Ponto médio da escala de cinza
+    binary = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            row.append(255 if gray[y][x] > threshold else 0)
+        binary.append(row)
+    return binary
 
 
 
-def coverte_img_binarizada(imagem):
-  
-    return imagem_binarizada
+# Leitura da imagem PPM
+image, width, height = read_ppm(imagem_original)
+
+# Conversão para tons de cinza
+gray = image_to_gray(image, width, height)
+
+# Binarização (preto e branco)
+binary = binarize_image(gray, width, height, threshold=127)
 
 
-imagem_binarizada = coverte_img_binarizada(imagem_original)
+# --- Exibição usando matplotlib ---
+plt.figure(figsize=(10,5))
 
-
-
-# Exibindo imagens
-plt.figure(figsize=(10, 6)) # Criando nova figura 
-plt.subplot(1, 3, 1) # 1 linha e 2 colunas
-plt.imshow(imagem_original)
+plt.subplot(1, 3, 1)# 1 linha e 3 colunas
+plt.imshow(image)
 plt.title("Imagem Original")
 
 plt.subplot(1, 3, 2)
-plt.imshow(imagem_cinza, cmap='gray')
+plt.imshow(gray, cmap='gray')
 plt.title("Tons de Cinza")
 
 plt.subplot(1, 3, 3)
-plt.imshow(imagem_binarizada)
+plt.imshow(binary, cmap='gray')
 plt.title("Preto e Branco")
 
-
-
+plt.tight_layout()
 plt.show()
